@@ -1,6 +1,6 @@
-# Qhapac-Ñan #
+# Geographical determinants of the *Qhapac Ñan* #
 
-#### Research problem  
+### Research problem  
 There is vast research on the long term effects of social or economic institutions (Dell, 2010 or Albertus et al. 2020 for examples focused in Perú). One significant institution whose long term effects have not been much researched is the ‘Incan trail’ (Camino Inca or Qhaphac Ñan in Quechua). The Qhapac Ñan (QÑ onwards) was a large roads system built by the Incas in the XV century, with an extension of over 30,000 km and covering Perú, Colombia, Ecuador, Bolivia, Chile and Argentina. In the ancient time, where transportation was much harder, proximity to this road system could make a huge difference in economic development. Moreover, at least in Perú, over time some of these old roads were replaced by highways, reinforcing the importance of proximity to them.  
   
 While there is one attempt to unravel the long term effects of the QÑ (Franco et al, 2021), this paper methodology has shortcomings. First, the selection of the geographical area they focus is arbitrary. Second, the study uses the ‘ring method’ to define their treatment and control areas. Using different sized buffers, they define treatment areas as those who are X km or closer to the QÑ route and control areas as those who are in the next X km. However, this ignores that because of how complex is Peruvian geography, there are areas where there is only one possible road to go from one point to another. This means that areas contiguous to the QÑ routes are not necessarily comparable to the areas where the QÑ goes through. In turn, this would mean that their estimates are biased (because of selection bias) and that their results cannot be considered causal effects.  
@@ -21,7 +21,7 @@ The height and slope variables have straightforward explanations. Height in the 
   
 Using ‘qapac’ as the dependent variable and height, slope, rivers and valleys as independent variables, a simple linear regression model can be used to get an idea of the relative importance of these variables in determining the QÑ. However, there are two sources of variation that could affect this estimates. First, estimated coefficients may vary considerably by route, as these are located in different geographical zones. Second, proximity to the real QÑ is also relevant. Thus, this linear regression model will be executed (i) for the whole dataset, filtering data by proximity to the actual QÑ using 1km steps (from 1km to 10km), and (ii) for each route, also filtering the data by proximity to the actual QÑ. Before presenting the results of these analyses, the following sections discuss the scalable computing methods employed and their importance.  
   
-#### Importance of using scalable computing methods  
+### Importance of using scalable computing methods  
 The nature of the analysis, which implies repeated linear regressions for every combination of route ID and buffer distance, implies fitting more than 100 models. Moreover, the dataset itself contains approximately 11.6 million observations, and this whole dataset is used for one model. Performing this analysis on a local computer versus in a cloud or remote cluster can make a significant difference in the following items:  
   
 1.	Memory constraints: Handling multiple gigabytes of geospatial data, especially with feature engineering and filtering, can exceed the available memory.  
@@ -32,14 +32,14 @@ The nature of the analysis, which implies repeated linear regressions for every 
   
 Thus, leveraging parallel and cloud tools can greatly impact the efficiency of this analysis.  
   
-#### Large-scale computing methods employed
+### Large-scale computing methods employed
 The two large-scale computing tools employed are AWS (EC2 and S3) and a Dask cluster (also cloud-based). Below is a more detailed description of how are these employed.  
 
 Cloud-based distributed cluster: an EC2 Dask cluster was deployed using the Dask AWS cloud provider. The cluster includes a scheduler and eight worker nodes (r5.large instances) with multiple vCPUs and large RAM allocations. This allows for efficient parallel computing across the cluster. Also, as the data is stored in an AWS S3 bucket, all data operations and model fitting are carried out within the cluster. Still, intermediate results are saved locally as they are not memory consuming (just plots saved as png files).
   
 Dask Dataframes and Arrays: the dataset is loaded and processed using Dask dataframes, which internally partition the data across the number of workers. Modeling tasks are conducted using Dask arrays and Dask-specific ML libraries, which are designed to work with Dask automated parallelism. In addition, memory optimization is increased using .persist(), which reduces redundant computation and accelerates repeated access to the same subsets. Un-doing the persist after each iteration of the loops also prevents inefficient usage memory usage.  
   
-#### Brief discussion of results  
+### Brief discussion of results  
 Some insights can be taken from the plots ([pooled](https://github.com/macs30123-s24/final-project-qhapac_nan/blob/main/coeffs_pooled.png) and [by route](https://github.com/macs30123-s24/final-project-qhapac_nan/blob/main/coeffs_routes.png)) in [analysis.ipynb](https://github.com/macs30123-s24/final-project-qhapac_nan/blob/main/analysis.ipynb):  
 1.	In the pooled routes analysis, the ordering of the variables in terms of importance is slope, rivers, valleys and height. This is regardless of the buffer filtering. However, the importance of slope decreases from 90% to 40% as the buffer size increases. The importance of rivers varies within 15% and 40%, and the importance of valleys and height increase consistently from 0 to almost 20% as the buffer size increases.  
 2.	The route specific analysis confirms that the main variables can differ by route. This suggests using different weights by route for the LCP analysis could be crucial. At the same time, the weird pattern that some variables exhibit in many routes (such as rivers in route 2 or height and rivers in route 7) suggest that results by route are not that robust. Still, there are also routes where all variables show a consistent pattern as buffer size increases, such as routes 1 and 8.  
